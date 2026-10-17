@@ -96,7 +96,7 @@ function load({ answer = view(), fail = null } = {}) {
   const make = new Function(
     'el', 'invoke', 'state', 't', 'initials', 'listDate', 'formatDate', 'LEVELS',
     'viewport', 'window', 'document', 'openWholeMessage', 'syncAside', 'select', 'say',
-    'iconSvg', 'reload',
+    'iconSvg', 'reload', 'accountOf',
     `${source}
      return { senderCard, showSender, hideSender, forgetSenders, hideHover, hoverTarget, senderName };`,
   );
@@ -121,6 +121,8 @@ function load({ answer = view(), fail = null } = {}) {
     (text) => said.push(text),
     () => document.createElement('span'),
     async () => reloads.push(true),
+    // As app.js has it: a row from All inboxes names its account.
+    (row) => row?.account ?? state.account,
   );
   return { ...api, el, state, asked, opened, said, reloads, document, window };
 }
@@ -250,7 +252,12 @@ test('what a hovered row is about depends on which list it is in', () => {
   document.getElementById('viewport').append(row);
   state.rows.set(0, { id: 42, key: 'erika@example.de' });
 
-  assert.deepEqual(hoverTarget(row), { node: row, id: 42 });
+  assert.deepEqual(hoverTarget(row), { node: row, id: 42, account: 1 });
+
+  // In All inboxes the row says whose it is, not the open account.
+  state.rows.set(0, { id: 42, key: 'erika@example.de', account: 2 });
+  assert.deepEqual(hoverTarget(row), { node: row, id: 42, account: 2 });
+  state.rows.set(0, { id: 42, key: 'erika@example.de' });
 
   // In People a row is a person, so the card is asked for by address.
   state.view = 'people';
